@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<head>
+	<!--Call stylesheet and leaflet js from external source-->
+	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.0.2/dist/leaflet.css" />
+<script type="text/javascript" src="https://unpkg.com/leaflet@1.0.2/dist/leaflet.js"></script>
+
+<!--We've downloaded the coordinates plugin-->
+	<script type="text/javascript" src="Leaflet.Coordinates/dist/Leaflet.Coordinates-0.1.5.min.js"></script>
+	<link rel="stylesheet" href="Leaflet.Coordinates/dist/Leaflet.Coordinates-0.1.5.css"/>
+
+	
+<script type="text/javascript" src="https://d3js.org/d3.v4.min.js"></script>
+<script src="https://d3js.org/d3-array.v1.min.js"></script>
+<script src="https://d3js.org/d3-geo.v1.min.js"></script>
+<script src="https://d3js.org/topojson.v2.min.js"></script>
+
+<script type="text/javascript" src="js/underscore-min.js"></script>
+<script type="text/javascript" src="js/L.D3SvgOverlay.v4.min.js"></script>
+
+	<style>
+		 html { height: 100% }
+		 body { height: 100%; margin: 0; padding: 0 }
+		 #map-canvas { height: 100%; width: 100%;} .leaflet-container{background:#aecdef;}
+	</style>
+</head>
+
+<body>
+	<div id="map-canvas"></div>
+<script>
+//122 nautical miles per day...
+L.TopoJSON = L.GeoJSON.extend({  
+  addData: function(jsonData) {    
+    if (jsonData.type === "Topology") {
+      for (key in jsonData.objects) {
+        geojson = topojson.feature(jsonData, jsonData.objects[key]);
+        var newjson = {type:geojson.type, features:[]}
+        geojson.features.forEach(function(d){
+					newjson.features.push(d);
+				})
+        L.GeoJSON.prototype.addData.call(this, newjson);
+      }
+    }    
+    else {
+			console.log(jsonData)
+     	L.GeoJSON.prototype.addData.call(this, jsonData);
+    }
+  }  
+});
+
+var topoLayer = new L.TopoJSON();
+	
+d3.json('data/covers.geojson', function(err, ocovData) {
+console.log(err)
+d3.json('data/undercover.geojson', function(err, ucovData) {
+d3.json('data/buildings-geo.json', function(err, bldgData) {
+d3.json('data/roads.json', function(err, roadData) {
+d3.json('data/trees.json', function(err, treeData) {
+d3.json('data/landuse.json', function(err, landData) {
+d3.json('data/iceland.topo.geojson', function(err, massData) {
+console.log(massData);
+
+		if (typeof(Number.prototype.toRadians) === "undefined") {
+			Number.prototype.toRadians = function() {
+				return this * Math.PI / 180;
+			}
+		}
+
+		if (typeof(Number.prototype.toDegrees) === "undefined") {
+			Number.prototype.toDegrees = function() {
+				return this * 180 / Math.PI;
+			}
+		}
+		
+			//Create map variable - this will give you a zoomable box starting zoomed into "setView( [Lat, Lng] = [38.977043, -76.503371], zoom level = 13)"
+			var initBounds = [[-85, -180],[85, 180]];
+					initTopLeft = initBounds[0],
+					initBottomRight = initBounds[1];
+
+			var map = L.map('map-canvas', {    
+				maxBounds: initBounds // Sets bounds as max
+			}).setView([64.18, -21.95], 12);
+			
+			var t = d3.transition()
+				.duration(350);
+console.log(bldgData)
+console.log(ocovData)
+console.log(ucovData)
+			var over = ocovData.features 
+			var undr = ucovData 
+			var bldg = bldgData.features //topojson.feature(bldgData, bldgData.objects.buildings).features
+			var mass = topojson.feature(massData, massData.objects.iceland).features
+			var tree = topojson.feature(treeData, treeData.objects.trees).features
+			var land = topojson.feature(landData, landData.objects.landuse).features
+			var road = topojson.feature(roadData, roadData.objects.roads).features
+	
+			console.log([bldg, mass, tree, land, road])
+
+			var overOverlay = L.d3SvgOverlay(function(sel, proj) {
+				var upd = sel.selectAll('path').data(over);
+				upd
+				.enter()
+					.append('path')
+						.attr('d', proj.pathFromGeojson)
+						.attr('fill', function(d){return d.properties.color})
+						.attr('fill-opacity', '1')
+						.attr('class', function(d){return d.properties.type})
+					;
+			});
+
+			var undrOverlay = L.d3SvgOverlay(function(sel, proj) {
+				var upd = sel.selectAll('path').data(undr);
+				upd
+				.enter()
+					.append('path')
+						.attr('d', proj.pathFromGeojson)
+						.attr('fill', function(d){return d.properties.color})
+						.attr('fill-opacity', '1')
+						.attr('class', function(d){return d.properties.type})
+					;
+			});
+
+			
+			
+			
+			var bldgsOverlay = L.d3SvgOverlay(function(sel, proj) {
+				var upd = sel.selectAll('path').data(bldg);
+				upd
+				.enter()
+					.append('path')
+						.attr('d', proj.pathFromGeojson)
+//						.attr('fill', function(){ return d3.hsl(Math.random() * 360, 0.9, 0.5) })
+//						.attr('fill', 'black')
+						.attr('fill', function(d){return d3.color(d.properties.type)})
+						.attr('fill-opacity', '1')
+						.attr('class', function(d){return d.properties.type})
+//						.attr("transform", "translate(0,1000) rotate(270)")
+						
+//						.attr('id', function(d){return d.properties.osm_id})
+					;
+			});
+
+			var massOverlay = L.d3SvgOverlay(function(sel, proj) {
+				var upd = sel.selectAll('path').data(mass);
+				upd
+				.enter()
+					.append('path')
+						.attr('d', proj.pathFromGeojson)
+						.attr('fill', '#7f7f7f')
+						.attr('fill-opacity', '1')
+//						.attr('class', function(d){return d.properties.type})
+//						.attr("transform", "translate(0,1000) rotate(270)")
+						;
+						
+//						.attr('id', function(d){return d.properties.osm_id})
+					;
+			});
+
+			var treesOverlay = L.d3SvgOverlay(function(sel, proj) {
+				var upd = sel.selectAll('path').data(tree);
+				upd
+				.enter()
+					.append('path')
+						.attr('d', proj.pathFromGeojson)
+						.attr('fill', 'forestgreen')
+						.attr('fill-opacity', '.75')
+//						.attr('class', function(d){return d.properties.type})
+//						.attr("transform", "translate(0,1000) rotate(270)")
+						;
+						
+//						.attr('id', function(d){return d.properties.osm_id})
+					;
+			});
+
+			var landsOverlay = L.d3SvgOverlay(function(sel, proj) {
+	//			console.log(landData.features);
+				var upd = sel.selectAll('path').data(land);
+				upd
+				.enter()
+					.append('path')
+						.attr('d', proj.pathFromGeojson)
+//						.attr('fill', function(){ return d3.hsl(Math.random() * 360, 0.9, 0.5) })
+						.attr('fill', 'green')
+						.attr('fill-opacity', '1')
+						.attr('class', function(d){return d.properties.type})
+	//						.attr("transform", "translate(0,1000) rotate(270)")
+					;
+			});
+
+			var projection = d3.geoEquirectangular()
+				.rotate([0, 0, 89])
+				.scale(85)
+				.precision(0);
+
+			var path = d3.geoPath()
+				.projection(projection);
+
+			var graticule = d3.geoGraticule();
+
+			var linePathGenerator = d3.line()
+					.x(function(d) { return d.x; })
+					.y(function(d) { return d.y; })
+					.curve(d3.curveLinear());
+
+			var roadsOverlay = L.d3SvgOverlay(function(sel, proj) {
+				var upd = sel.selectAll('path')
+					.data(road);
+					upd
+					.enter()
+						.append('path')
+							.attr('d', proj.pathFromGeojson)
+							.attr('stroke-opacity', .5)
+							//.attr('stroke-opacity', function(d){console.log(d);return d.properties.maxspeed < 70 ? 1 : 0})
+//							.attr('stroke-opacity', 1)
+							.attr('stroke', 'white')
+							.attr('fill-opacity', 0)
+							.attr('class', function(d){return d.properties.type})
+//							.attr("transform", "translate(0,1000) rotate(270)")
+						;
+					upd.attr('stroke-width', 2 / proj.scale);
+//					upd.attr('stroke-width', 1 );
+					});
+
+			function whenClicked(e){
+//				console.log(e);
+				var tgtID = e.target.feature.properties.osm_id
+				//console.log();
+		/*//a little exploration
+				console.log(tgtID)
+				console.log('#3'+tgtID.toString().substring(0,1)+' '+tgtID.toString().substring(1,tgtID.length))
+				
+				var allPaths = d3.selectAll("#map-canvas > div.leaflet-pane.leaflet-map-pane > div.leaflet-pane.leaflet-overlay-pane > svg:nth-child(1) > g > path")
+				
+				allPaths.transition().duration(500).attr("transform", "translate(0,0) rotate(180)")
+				
+		*/
+//*[@id="5170580"]
+//				console.log(d3.select('#3'+tgtID.toString().substring(1,1)+' '+tgtID.toString().substring(2,tgtID.length)))
+				
+				//eg,
+				//#\35 170580
+				//#\32 3591224
+/*				this.setLatLngs(rotatePoints(
+					center=e.target.feature.geometry.coordinates[0], 
+					points=[e.target.feature.geometry.coordinates[0], e.target.feature.geometry.coordinates[e.target.feature.geometry.coordinates.length-1]],
+					yaw=180
+				))
+*/
+			}
+			
+			function onEachFeature(feature, layer) {
+				//bind click
+				layer.on({
+						click: whenClicked
+				});
+			}
+
+			L.control.layers({}, {"Continent": massOverlay, "Fill_1":undrOverlay, "Land": landsOverlay, "Trees": treesOverlay, "Buildings": bldgsOverlay, "Roads": roadsOverlay, "Fill_2":overOverlay}).addTo(map);
+
+			massOverlay.addTo(map);			
+			undrOverlay.addTo(map);			
+			landsOverlay.addTo(map);			
+			treesOverlay.addTo(map);			
+			roadsOverlay.addTo(map);			
+			bldgsOverlay.addTo(map);			
+			overOverlay.addTo(map);			
+			
+/*			
+		var bldPaths = d3.selectAll("#map-canvas > div.leaflet-pane.leaflet-map-pane > div.leaflet-pane.leaflet-overlay-pane > svg:nth-child(1) > g > path")
+		var rdsPaths = d3.selectAll("#map-canvas > div.leaflet-pane.leaflet-map-pane > div.leaflet-pane.leaflet-overlay-pane > svg:nth-child(2) > g > path")
+		var lndPaths = d3.selectAll("#map-canvas > div.leaflet-pane.leaflet-map-pane > div.leaflet-pane.leaflet-overlay-pane > svg:nth-child(3) > g > path")
+		
+		
+		bldPaths.transition().duration(750).attr("transform", "translate(0,0) rotate(270)")
+		rdsPaths.transition().duration(750).attr("transform", "translate(0,0) rotate(270)")				
+		lndPaths.transition().duration(750).attr("transform", "translate(0,0) rotate(270)")
+	*/			
+
+			
+//Doing this would make clickable bldgs; we don't need this, and it's harder to rotate 
+//			L.geoJSON(bldgData, {onEachFeature: onEachFeature, opacity: 0, fillOpacity: 0.25}).addTo(map);
+					
+		//IF YOU HAVE THE COORDINATES PLUG-IN, add lat/lon viewer (credit: https://github.com/MrMufflon/Leaflet.Coordinates)	
+		//add standard controls
+		L.control.coordinates().addTo(map);
+		//add configured controls
+		L.control.coordinates({
+			position:"bottomleft",
+			decimals:2,
+			decimalSeperator:",",
+			labelTemplateLat:"Latitude: {y}",
+			labelTemplateLng:"Longitude: {x}"
+		}).addTo(map);
+		L.control.coordinates({
+			position:"topright",
+			useDMS:true,
+			labelTemplateLat:"N {y}",
+			labelTemplateLng:"E {x}",
+			useLatLngOrder:true
+		}).addTo(map);
+
+//Function to rotate geoJSON	
+//"yaw" = a number between 90 and 450 (determines rotation)
+//"center" = the [lat, lon] point array about which the obj is rotated
+	function rotatePoints(center, points, yaw) {
+		var res = []
+		var angle = yaw * (Math.PI / 180) // not really sure what this is
+		for(var i=0; i<points.length; i++) {
+			var p = points[i]
+			// translate to center
+			var p2 = [ p[0]-center[0], p[1]-center[1] ]
+			// rotate using matrix rotation
+			var p3 = [ Math.cos(angle)*p2[0] - Math.sin(angle)*p2[1], Math.sin(angle)*p2[0] + Math.cos(angle)*p2[1]]
+			// translate back to center
+			var p4 = [ p3[0]+center[0], p3[1]+center[1]]
+			// done with that point
+			res.push(p4)
+		}
+		return res
+	}
+				
+//	island circles: [-21.8992,64.2109] and [-21.8846,64.2168]
+
+})
+})
+})
+})
+})
+})
+})
+	</script>
+</body>
+</html>
