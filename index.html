@@ -371,19 +371,25 @@ console.log(ucovData)
 		}
 		return res
 	}
-				
+	
+	
+	var selJson = {"type": "FeatureCollection","features": []}
+
 //	island circles: [-21.8992,64.2109] and [-21.8846,64.2168]
 
 			var charOverlay = L.d3SvgOverlay(function(sel, proj) {
 				//var upd = sel.selectAll('path').data(chars);
-
-				var upd = sel.selectAll('path').data(day1);
+				console.log(selJson)
+				var upd = sel.selectAll('path').data(selJson.features);
 								
 				upd
 				.enter()
-					.append('circle')
-//						.attr('d', proj.pathFromGeojson)
-						.attr('d', function(c){
+					.append('path')
+						.attr('d', proj.pathFromGeojson)
+							.attr('class', function(d){return d.properties.type})
+
+//						.append('circle')
+/*						.attr('d', function(c){
 						console.log(c)
 							var y = c.point[1]
 							var x = c.point[0]
@@ -397,13 +403,30 @@ console.log(ucovData)
 							}]
 							return proj.pathFromGeojson(gj)
 						})
-						.attr('r', 10)
+*/
+//						.attr('r', 10)
+/*
+						.attr('cx', function(d){
+							console.log(proj.pathFromGeojson(d))
+							return proj.pathFromGeojson(d).split('L')[0].split(',')[0].replace('M', '')
+						})
+						.attr('cy', function(d){
+							console.log(proj.pathFromGeojson(d))
+							return proj.pathFromGeojson(d).split('L')[0].split(',')[1]
+						})
+*/
 //						.attr('transform', function(c)
 						
 //						var map.latLngToLayerPoint(new L.LatLng(y, x))
 
-						.attr('fill', '#7f7f7f')
-						.attr('fill-opacity', '1')
+		        .style("stroke-dasharray", ("1, 1"))  
+						.attr('fill', selJson.features[0].properties.data[0].color)
+						.attr('stroke', selJson.features[0].properties.data[0].color)
+						.attr('stroke-color', selJson.features[0].properties.data[0].color)
+						.attr('stroke-width', .25)
+						.attr('stroke-opacity', 1)
+						.attr('opacity', 1)
+						.attr('fill-opacity', '0')
 //						.attr('class', function(d){return d.properties.type})
 //						.attr("transform", "translate(0,1000) rotate(270)")
 						;
@@ -412,18 +435,71 @@ console.log(ucovData)
 					;
 			});
 			
-			charOverlay.addTo(map)
 
+
+	
+	var width = 960,
+    height = 480;
+
+	var projection = d3.geoEquirectangular()
+	    .scale(153)
+	    .rotate([160, 0])
+	    .translate([width / 2, height / 2])
+	    .precision(.1);
+	
+	var path = d3.geoPath()
+	    .projection(projection);
+	
+	var graticule = d3.geoGraticule();
+
+	
 
 
 function playStory(){
+	selJson = {"type": "FeatureCollection","features": []}
 
-	var circle = 
+	//var circle = 
 	chars.forEach(function(c){
-		
 	
+	console.log(c)
+	
+	var activities = _.filter(day1, function(obj){return _.contains(obj.chars, c.id)})
+	
+	console.log(activities)
+	
+	var pathStr = path({type: "LineString", coordinates: [ activities[0].point, activities[1].point, activities[2].point, activities[3].point, activities[4].point ]})
+	
+	var strArr = pathStr.split('L')
+	
+	strArr[0] = strArr[0].replace('M', '')
+
+//    						console.log(strArr)
+	
+	var coordArc = []
+	
+	strArr.forEach(function(d){
+		coordArc.push(projection.invert(d.split(',')))
 	})
+	
+//								console.log(coordArc)
+	
+//try {console.log(d3.geoPath()(s.source, s.target))} catch(err) {console.log(err)}
+//var line = d3.geoInterpolate([s.source[1], s.source[0]], [s.target[1], s.target[0]])
+  var sfeature =  { "type": "Feature", "geometry": 
+  	{ "type": "LineString",
+//							    "coordinates": [ s.source, s.target ]
+    "coordinates": coordArc
+		}, 
+	"properties":{"stroke":1/*lineWgt(s.n)*/, "data":[c,activities]}
+	}
+
+	selJson.features.push(sfeature)
+	})
+	
+	charOverlay.addTo(map)
 }
+
+playStory()
 
 })
 })
