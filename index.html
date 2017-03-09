@@ -28,6 +28,60 @@
 	<div id="map-canvas"></div>
 <script>
 //122 nautical miles per day...
+//#043A70 and #5451ef are also nice blues
+var chars = [
+	{id: 'Ani', color:'#D50F25', offset:[.0001, .0001]},
+	{id: 'Ena', color:'#50c878', offset:[-.0001, -.0001]},
+	{id: 'Ren', color:'#4169E1', offset:[.0001, -.0001]},
+	{id: 'Bahent', color:'#e4d00a', offset:[-.0001, .0001]},
+]
+
+var day1 = [
+	{
+		"step": 1, 
+		"label":"Fountain centerpoint", 
+		"point": [-21.8925,64.1337],
+		"stay":1500,
+		"travel":500,
+		"chars":["Ani","Ena","Bahent","Ren"]
+	}, {
+		"step":2, 
+		"label":"Pub",
+		"point": [-21.8885,64.1331],
+		"stay":3000,
+		"travel":500,
+		"chars":["Ani","Ena","Bahent","Ren"]
+	}, {
+		"step":3,
+		"label":"Fountain centerpoint", 
+		"point": [-21.8925,64.1337],
+		"stay":1500,
+		"travel":250,
+		"chars":["Ani","Ena","Bahent","Ren"]
+	}, {
+		"step":4,
+		"label":"Emerallen Forest", 
+		"point": [-21.9170,64.1291],
+		"stay":500,
+		"travel":3000,
+		"chars":["Ani","Ena","Bahent","Ren"]
+	}, {
+		"step":5,
+		"label":"Emerallen Forest", 
+		"point": [-21.9188,64.1292],
+		"stay":12000,
+		"chars":["Bahent","Ren"],
+		"travel":50
+	}, {
+		"step":5,
+		"label":"Markets", 
+		"point": [-21.9300,64.1434],
+		"stay":12000,
+		"chars":["Ani","Ena"],
+		"next":3000
+	}
+]
+		
 L.TopoJSON = L.GeoJSON.extend({  
   addData: function(jsonData) {    
     if (jsonData.type === "Topology") {
@@ -319,6 +373,57 @@ console.log(ucovData)
 	}
 				
 //	island circles: [-21.8992,64.2109] and [-21.8846,64.2168]
+
+			var charOverlay = L.d3SvgOverlay(function(sel, proj) {
+				//var upd = sel.selectAll('path').data(chars);
+
+				var upd = sel.selectAll('path').data(day1);
+								
+				upd
+				.enter()
+					.append('circle')
+//						.attr('d', proj.pathFromGeojson)
+						.attr('d', function(c){
+						console.log(c)
+							var y = c.point[1]
+							var x = c.point[0]
+							var gj = [{
+								'type':'Feature', 
+								'properties':c, 
+								'geometry':{
+									'type':'point',
+									'coordinates': c.point //[x, y]
+								}
+							}]
+							return proj.pathFromGeojson(gj)
+						})
+						.attr('r', 10)
+//						.attr('transform', function(c)
+						
+//						var map.latLngToLayerPoint(new L.LatLng(y, x))
+
+						.attr('fill', '#7f7f7f')
+						.attr('fill-opacity', '1')
+//						.attr('class', function(d){return d.properties.type})
+//						.attr("transform", "translate(0,1000) rotate(270)")
+						;
+						
+//						.attr('id', function(d){return d.properties.osm_id})
+					;
+			});
+			
+			charOverlay.addTo(map)
+
+
+
+function playStory(){
+
+	var circle = 
+	chars.forEach(function(c){
+		
+	
+	})
+}
 
 })
 })
