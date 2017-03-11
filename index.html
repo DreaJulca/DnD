@@ -111,7 +111,7 @@ d3.json('data/roads.json', function(err, roadData) {
 d3.json('data/trees.json', function(err, treeData) {
 d3.json('data/landuse.json', function(err, landData) {
 d3.json('data/iceland.topo.geojson', function(err, massData) {
-console.log(massData);
+//console.log(massData);
 
 		if (typeof(Number.prototype.toRadians) === "undefined") {
 			Number.prototype.toRadians = function() {
@@ -335,7 +335,7 @@ console.log(ucovData)
 					
 		//IF YOU HAVE THE COORDINATES PLUG-IN, add lat/lon viewer (credit: https://github.com/MrMufflon/Leaflet.Coordinates)	
 		//add standard controls
-		L.control.coordinates().addTo(map);
+		L.control.coordinates()//.addTo(map);
 		//add configured controls
 		L.control.coordinates({
 			position:"bottomleft",
@@ -343,14 +343,14 @@ console.log(ucovData)
 			decimalSeperator:",",
 			labelTemplateLat:"Latitude: {y}",
 			labelTemplateLng:"Longitude: {x}"
-		}).addTo(map);
+		})//.addTo(map);
 		L.control.coordinates({
 			position:"topright",
 			useDMS:true,
 			labelTemplateLat:"N {y}",
 			labelTemplateLng:"E {x}",
 			useLatLngOrder:true
-		}).addTo(map);
+		})//.addTo(map);
 
 //Function to rotate geoJSON	
 //"yaw" = a number between 90 and 450 (determines rotation)
@@ -377,65 +377,6 @@ console.log(ucovData)
 
 //	island circles: [-21.8992,64.2109] and [-21.8846,64.2168]
 
-			var charOverlay = L.d3SvgOverlay(function(sel, proj) {
-				//var upd = sel.selectAll('path').data(chars);
-				console.log(selJson)
-				var upd = sel.selectAll('path').data(selJson.features);
-								
-				upd
-				.enter()
-					.append('path')
-						.attr('d', proj.pathFromGeojson)
-							.attr('class', function(d){return d.properties.type})
-
-//						.append('circle')
-/*						.attr('d', function(c){
-						console.log(c)
-							var y = c.point[1]
-							var x = c.point[0]
-							var gj = [{
-								'type':'Feature', 
-								'properties':c, 
-								'geometry':{
-									'type':'point',
-									'coordinates': c.point //[x, y]
-								}
-							}]
-							return proj.pathFromGeojson(gj)
-						})
-*/
-//						.attr('r', 10)
-/*
-						.attr('cx', function(d){
-							console.log(proj.pathFromGeojson(d))
-							return proj.pathFromGeojson(d).split('L')[0].split(',')[0].replace('M', '')
-						})
-						.attr('cy', function(d){
-							console.log(proj.pathFromGeojson(d))
-							return proj.pathFromGeojson(d).split('L')[0].split(',')[1]
-						})
-*/
-//						.attr('transform', function(c)
-						
-//						var map.latLngToLayerPoint(new L.LatLng(y, x))
-
-		        .style("stroke-dasharray", ("1, 1"))  
-						.attr('fill', selJson.features[0].properties.data[0].color)
-						.attr('stroke', selJson.features[0].properties.data[0].color)
-						.attr('stroke-color', selJson.features[0].properties.data[0].color)
-						.attr('stroke-width', .25)
-						.attr('stroke-opacity', 1)
-						.attr('opacity', 1)
-						.attr('fill-opacity', '0')
-//						.attr('class', function(d){return d.properties.type})
-//						.attr("transform", "translate(0,1000) rotate(270)")
-						;
-						
-//						.attr('id', function(d){return d.properties.osm_id})
-					;
-			});
-			
-
 
 	
 	var width = 960,
@@ -456,10 +397,51 @@ console.log(ucovData)
 
 
 function playStory(){
-	selJson = {"type": "FeatureCollection","features": []}
 
 	//var circle = 
 	chars.forEach(function(c){
+			var charOverlay = L.d3SvgOverlay(function(sel, proj) {
+				//var upd = sel.selectAll('path').data(chars);
+//				console.log(selJson)
+				var upd = sel.selectAll('path').data(selJson.features);
+				var charCol = selJson.features[0].properties.data[0].color
+				var charOfs = selJson.features[0].properties.data[0].offset
+				var charName = selJson.features[0].properties.data[0].id
+				upd
+				.enter()
+					.append('path')
+						.attr('d', proj.pathFromGeojson)
+						.attr('class', function(d){return d.properties.type})
+						.attr('id', function(d){return charName + '_line'})
+//		        .style("stroke-dasharray", ("1, 1"))  
+						.attr('fill', charCol)
+						.attr('stroke', charCol)
+						.attr('stroke-color', charCol)
+						.attr('stroke-width', .5)
+						.attr('stroke-opacity', .65)
+						.attr('opacity', .65)
+						.attr('fill-opacity', '0')
+						;
+						
+				upd.enter().append('circle')						
+				.attr('id', function(d){console.log(d);  return d.properties.data[0].id + '_marker'})
+				.attr("r", 0.05 / proj.scale)
+				.attr("fill", charCol)
+				.attr("transform", function(d){
+					var pLat = d.properties.data[1][0].point[1]
+					var pLon = d.properties.data[1][0].point[0]
+					var cLat = pLat + charOfs[0]
+					var cLon = pLon + charOfs[1]
+					var geoCoord = [cLat, cLon]
+				var point = proj.latLngToLayerPoint(geoCoord)
+
+					console.log([geoCoord, point])
+					return 'translate('+ point.x + ',' + point.y +')'
+				});
+			});
+			
+
+	selJson = {"type": "FeatureCollection","features": []}
 	
 	console.log(c)
 	
@@ -494,9 +476,93 @@ function playStory(){
 	}
 
 	selJson.features.push(sfeature)
+
+	charOverlay.addTo(map)
+
+	
 	})
 	
-	charOverlay.addTo(map)
+						// Once overlays are added, we animate it.
+
+	chars.forEach(function(c){
+	console.log(c)
+	/*var paths = d3.selectAll('.travelLine').each(function(ln){
+		var pathid = "#c"+ln.properties.s.data[0].egeoloc+'to'+ln.properties.s.state;
+		var mrkrid = "#marker"+ln.properties.s.data[0].egeoloc+'to'+ln.properties.s.state;
+		console.log(pathid)*/
+	var path = d3.select('#'+c.id+'_line');
+	
+	var startPoint = pathStartPoint(path);
+	
+	console.log(startPoint)
+	
+	var marker = d3.select('#'+c.id+'_marker');
+	marker.attr("r", function(d){
+//		console.log(d)
+		return 1+d.properties.stroke
+		})
+		.attr("transform", "translate(" + startPoint[0] + ")");
+
+	ptransition();
+
+	//Get path start point for placing marker
+	function pathStartPoint(path) {
+		console.log(path)
+		var d = path.attr("d"),
+		dsplitted = d.split("M");
+		return dsplitted[1].split(",");
+	}
+	
+	//There may be a way to do this more effectively by iterating over the activities and transitioning based on that?
+/*
+	function ctransition() {
+		marker.transition()
+				.duration(3500)
+				.attrTween("transform", translateAlong(path.node()))
+				.on("end", ctransition);// infinite loop
+	}
+
+	function translateAlong(path) {
+		var l = path.getTotalLength();
+		return function(i) {
+			return function(t) {
+				var p = path.getPointAtLength(t * l);
+				return "translate(" + p.x + "," + p.y + ")";//Move marker
+			}
+		}
+	}
+*/						
+	function ptransition() {
+		path.transition()
+				.duration(3500)
+				.attrTween("stroke-dasharray", tweenDash)
+				.on("end", function(d){
+				//console.log(d); 
+				ptransition();
+				}); // infinite loop
+	}
+
+	function tweenDash() {
+		var l = path.node().getTotalLength();
+		var i = d3.interpolateString("0," + l, l + "," + l); // interpolation of stroke-dasharray style attr
+		return function(t) {
+//					      var marker = d3.select("#marker");
+			var p = path.node().getPointAtLength(t * l);
+			marker.attr("transform", function(d){
+//			console.log(d); 
+			var px = (10000*d.properties.data[0].offset[0] + p.x)
+			var py = (10000*d.properties.data[0].offset[1] + p.y)
+			var locStr = "translate(" + px + "," + py + ")"
+			//console.log(d.properties.data[0].offset)
+			return locStr
+			});//move marker
+			console.log(i(t));
+			return i(t);
+		}
+	}
+
+});				
+
 }
 
 playStory()
